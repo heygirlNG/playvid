@@ -37,7 +37,7 @@ export class SubscriptionsService {
           email,
           amount: Number(plan.amount) * 100,
           currency: 'NGN',
-          callback_url: `${this.configService.get<string>('APP_URL') ?? 'http://localhost:3000'}/pricing`,
+          callback_url: `${this.configService.get<string>('APP_URL') ?? 'http://localhost:3000'}/subscribe-success`,
           metadata: {
             planId: plan.id,
             planName: plan.name,
@@ -63,5 +63,48 @@ export class SubscriptionsService {
         message: 'Unable to initialize Paystack checkout.',
         error: error?.response?.data ?? error.message,
       }));
+  }
+
+  async verifyTransaction(reference: string) {
+    const secretKey = this.configService.get<string>('PAYSTACK_SECRET_KEY');
+
+    if (!secretKey) {
+      return {
+        success: false,
+        message: 'Paystack secret key is not configured.',
+      };
+    }
+
+    try {
+      const response = await axios.get(`https://api.paystack.co/transaction/verify/${reference}`, {
+        headers: {
+          Authorization: `Bearer ${secretKey}`,
+        },
+      });
+
+      const transaction = response?.data?.data ?? null;
+      const status = transaction?.status ?? 'failed';
+      const amount = transaction?.amount ?? 0;
+      const currency = transaction?.currency ?? 'NGN';
+      const planId = transaction?.metadata?.planId ?? 'premium';
+
+      return {
+        success: status === 'success',
+        message: status === 'success' ? 'Subscription activated.' : 'Payment is still pending or failed.',
+        transaction: {
+          reference,
+          status,
+          amount,
+          currency,
+          planId,
+        },
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: 'Unable to verify your Paystack subscription.',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
   }
 }
