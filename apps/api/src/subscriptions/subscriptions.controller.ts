@@ -11,8 +11,10 @@ export class SubscriptionsController {
   }
 
   @Post('checkout')
-  createCheckout(@Body() body: { planId: string }) {
-    return this.subscriptionsService.createCheckout(body.planId);
+  createCheckout(
+    @Body() body: { planId: string; email?: string },
+  ) {
+    return this.subscriptionsService.createCheckout(body.planId, body.email);
   }
 
   @Get('status/:planId')
