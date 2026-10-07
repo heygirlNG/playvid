@@ -1,0 +1,67 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  CREATOR
+  ADMIN
+}
+
+enum AuthProvider {
+  GOOGLE
+  PHONE
+}
+
+enum SubscriptionStatus {
+  FREE
+  ACTIVE
+  CANCELLED
+  EXPIRED
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String
+  email         String?   @unique
+  phone         String?   @unique
+  passwordHash  String?
+  role          Role      @default(USER)
+  provider      AuthProvider?
+  avatarUrl     String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  subscriptions Subscription[]
+  videos        Video[]
+}
+
+model Subscription {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id])
+  planId        String
+  status        SubscriptionStatus @default(FREE)
+  amount        Int
+  currency      String   @default("NGN")
+  paystackRef   String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Video {
+  id            String   @id @default(cuid())
+  title         String
+  description   String?
+  url           String
+  thumbnail     String?
+  creatorId     String
+  creator       User     @relation(fields: [creatorId], references: [id])
+  premiumOnly   Boolean  @default(false)
+  views         Int      @default(0)
+  createdAt     DateTime @default(now())
+}
